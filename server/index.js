@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const port = process.env.PORT || 8080;
 const pino = require('express-pino-logger')();
+const cors = require('cors');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -15,6 +16,7 @@ const proxy = createProxyMiddleware({
 	pathRewrite: {'^/stocktwits': ''},
 });
 
+app.use(cors());
 app.use('/stocktwits', proxy);
 
 app.use(express.static(path.join(__dirname, '..')));
