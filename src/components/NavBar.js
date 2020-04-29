@@ -2,12 +2,10 @@ import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import Badge from '@material-ui/core/Badge';
 import Typography from '@material-ui/core/Typography';
-// import Button from '@material-ui/core/Button';
-// import ButtonGroup from '@material-ui/core/ButtonGroup';
-import IconButton from '@material-ui/core/IconButton';
-import MenuIcon from '@material-ui/icons/Settings';
-// import ViewToggle from './ViewToggle';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -22,8 +20,18 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function ButtonAppBar() {
+const findStream = (symbol, streams) => {
+    return streams.find(stream => stream.data.symbol.symbol === symbol);
+};
+
+function TabLabel ({symbol, messages}) {
+    
+}
+
+export default function NavBar(props) {
   const classes = useStyles();
+  const {symbols, changeHandler, activeStream, streams} = props;
+    console.log(props);
 
   return (
     <div className={classes.root}>
@@ -32,9 +40,9 @@ export default function ButtonAppBar() {
           <Typography variant="h6" className={classes.title}>
             StockTwits Symbols Streamer
           </Typography>
-          <IconButton edge="end" className={classes.menuButton} color="inherit" aria-label="menu">
-            <MenuIcon />
-          </IconButton>
+            <Tabs value={activeStream} onChange={changeHandler} aria-label="simple tabs example">
+                { symbols.map(symbol => ( <Tab label={<Badge badgeContent={30} color="secondary">{symbol}</Badge>} value={symbol} key={symbol}/>)) }
+            </Tabs>
         </Toolbar>
       </AppBar>
     </div>
