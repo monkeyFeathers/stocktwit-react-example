@@ -18,8 +18,8 @@ export default function FixedTags({ value, onChange }) {
         const {
           data: options,
         } = await axios.get(
-          `https://sandbox.iexapis.com/stable/search/${query}`,
-          { params: { token: process.env.REACT_APP_IEX_TOKEN } }
+          `symbolsearch/${query}`
+          // { params: { token: process.env.REACT_APP_IEX_TOKEN } }
         );
         setOptions(
           options.filter(
