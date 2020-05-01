@@ -1,12 +1,16 @@
-import React from 'react';
-import NavBar from './components/NavBar';
 import axios from "axios";
-import Container from '@material-ui/core/Container';
-import Fade from '@material-ui/core/Fade';
-import Stream from './components/Stream';
+import React from "react";
+import { isEqual, isEmpty } from "lodash";
+import theme from "./theme";
+import Grid from "@material-ui/core/Grid";
+import Paper from "@material-ui/core/Paper";
+import Skeleton from "@material-ui/lab/Skeleton";
+import Stream from "./components/Stream";
+import NavBar from "./components/NavBar";
+import ShowChartIcon from "@material-ui/icons/ShowChart";
 
 const symbolStreamsApi = axios.create({
-    baseURL: "stocktwits/api/2/streams/symbol/"
+  baseURL: "stocktwits/api/2/streams/symbol/",
 });
 
 const ERROR = "ERROR";
@@ -14,74 +18,143 @@ const INITIALIZE = "INITIALIZE";
 const LOADING = "LOADING";
 const LOADED = "LOADED";
 
+const styles = {
+  root: {
+    marginTop: "3rem",
+  },
+  loader: {
+    flexGrow: 1,
+  },
+  paper: {
+    margin: `${theme.spacing(1)}px`,
+    padding: theme.spacing(1),
+  },
+};
+
+function Loader() {
+  return (
+    <Grid container style={styles.loader}>
+      <Grid item xs={12}>
+        <Paper style={styles.paper}>
+          <Skeleton animation="wave" />
+          <Skeleton animation="wave" />
+          <Skeleton animation="wave" />
+        </Paper>
+      </Grid>
+    </Grid>
+  );
+}
+
+function NoMessages() {
+  return (
+    <Paper
+      style={{
+        height: "20rem",
+        width: "20rem",
+        margin: "auto",
+        textAlign: "center",
+      }}>
+      <div style={{ margin: "3rem auto" }}>
+        <ShowChartIcon style={{ fontSize: "10rem" }} />
+      </div>
+      <div style={{ margin: "auto" }}>No messages</div>
+    </Paper>
+  );
+}
+
 export default class App extends React.Component {
-    state = {
-        symbols: ['AAPL', 'BAC'],
-        activeStream: 'AAPL',
-        streams: [],
-        appState: INITIALIZE,
-        error: null
+  state = {
+    symbols: [],
+    streams: [],
+    messages: [],
+    appState: INITIALIZE,
+    error: null,
+  };
+
+  async componentDidMount() {
+    await this.fetchStreams();
+  }
+  componentDidUpdate(_, { symbols: prevSymbols }) {
+    const { symbols } = this.state;
+
+    if (!isEqual(symbols, prevSymbols)) {
+      if (isEmpty(symbols)) {
+        this.setState({ streams: [], messages: [] });
+      } else {
+        this.fetchStreams();
+      }
     }
+  }
 
-    async componentDidMount() {
-        window.app = this;
-        await this.fetchStreams();
-    }
+  async fetchStreams() {
+    const { symbols } = this.state;
 
-    async fetchStreams() {
-        const { symbols, streams: previousStreams } = this.state;
+    if (symbols.length) {
+      this.setState({ appState: LOADING });
+      try {
+        const streams = await Promise.all(
+          symbols.map(({ symbol }) =>
+            symbolStreamsApi.get(`${symbol}.json`, { params: { limit: 5 } })
+          )
+        );
 
-        this.setState({loading: true});
-        try {
-            const streams = await Promise.all( symbols.map(symbol => symbolStreamsApi.get(`${symbol}.json`)));
-            this.setState({streams, appState: LOADED}) 
-        } catch(error) {
-            this.setState({error, appState: ERROR, streams: previousStreams});
+        this.setState({
+          streams,
+          appState: LOADED,
+          messages: streams
+            .reduce((r, { data }) => r.concat(data.messages), [])
+            .sort(
+              (a, b) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+            ),
+        });
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          this.setState({ error, appState: ERROR });
+        } else {
+          this.setState({ appState: LOADED });
         }
-        this.setState({loading: false});
+      }
+    }
+  }
+
+  onSymbolChange = (_, symbols) => {
+    this.setState({ symbols });
+  };
+
+  render() {
+    const { symbols, messages, appState, streams } = this.state;
+    let content;
+
+    switch (appState) {
+      case LOADING:
+        content = Loader();
+        break;
+      case ERROR:
+        content = <pre>{JSON.stringify(this.state.error, null, 4)}</pre>;
+        break;
+      case INITIALIZE:
+      case LOADED:
+      default:
+        content = NoMessages();
+        if (messages.length) {
+          content = <Stream messages={messages} />;
+        }
+        break;
     }
 
-    changeHandler = (_, value) => {
-        this.setState({activeStream: value});
-    }
-
-    render () {
-      const { symbols, streams, appState, activeStream } = this.state;
-      const changeHandler = this.changeHandler;
-      let content;
-
-      switch(appState) {
-          case INITIALIZE:
-              content = "Loading..."
-          break;
-          case LOADING:
-              content = "Loading..."
-          break;
-          case ERROR:
-              content = (<pre>{JSON.stringify(this.state.error, null, 4)}</pre>);
-          break;
-          case LOADED:
-          default:
-              content = "no messages";
-              if (streams.length) {
-                  content = streams.map(stream => {
-                      const {symbol: {symbol}} = stream.data;
-                      return (
-                        <Stream stream={stream.data} isActive={symbol === activeStream} key={`stream-${symbol}`}/>
-                      );
-                  });
-              }
-          break;
-      } 
-
-
-      return (
-        <div>
-          <NavBar symbols={symbols} streams={streams} changeHandler={changeHandler} activeStream={activeStream}/>
-            <Container maxWidth={false}>
-                { content }
-            </Container>
-        </div>
-      );
-    }
+    return (
+      <div>
+        <NavBar
+          symbols={symbols}
+          onSymbolChange={this.onSymbolChange}
+          streams={streams}
+        />
+        <Grid container style={styles.root}>
+          {content}
+        </Grid>
+      </div>
+    );
+  }
 }

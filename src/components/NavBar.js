@@ -1,48 +1,43 @@
-import React from 'react';
-import { makeStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Tabs from '@material-ui/core/Tabs';
-import Tab from '@material-ui/core/Tab';
-import Badge from '@material-ui/core/Badge';
-import Typography from '@material-ui/core/Typography';
+import React from "react";
+import { makeStyles } from "@material-ui/core/styles";
+import AppBar from "@material-ui/core/AppBar";
+import Toolbar from "@material-ui/core/Toolbar";
+import Typography from "@material-ui/core/Typography";
+import SymbolSearch from "./SymbolSearchAutocomplete";
+import Grid from "@material-ui/core/Grid";
 
 const useStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
+    margin: theme.spacing(2),
+    padding: theme.spacing(2),
   },
-  menuButton: {
-    marginLeft: theme.spacing(2),
-  },
-  viewToggle: { marginRight: theme.spacing(2) },
   title: {
     flexGrow: 1,
   },
 }));
 
-const findStream = (symbol, streams) => {
-    return streams.find(stream => stream.data.symbol.symbol === symbol);
-};
-
-function TabLabel ({symbol, messages}) {
-    
-}
-
-export default function NavBar(props) {
+export default function NavBar({ symbols, streams, onSymbolChange }) {
   const classes = useStyles();
-  const {symbols, changeHandler, activeStream, streams} = props;
-    console.log(props);
 
   return (
     <div className={classes.root}>
-      <AppBar position="static">
+      <AppBar position="fixed">
         <Toolbar>
-          <Typography variant="h6" className={classes.title}>
-            StockTwits Symbols Streamer
-          </Typography>
-            <Tabs value={activeStream} onChange={changeHandler} aria-label="simple tabs example">
-                { symbols.map(symbol => ( <Tab label={<Badge badgeContent={30} color="secondary">{symbol}</Badge>} value={symbol} key={symbol}/>)) }
-            </Tabs>
+          <Grid container alignItems="center">
+            <Grid item xs={12} sm={6}>
+              <Typography variant="h6" className={classes.title}>
+                StockTwits Symbols Streamer
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <SymbolSearch
+                value={symbols}
+                streams={streams}
+                onChange={onSymbolChange}
+              />
+            </Grid>
+          </Grid>
         </Toolbar>
       </AppBar>
     </div>
